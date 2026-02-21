@@ -67,4 +67,16 @@ interface TransactionDao {
 
     @Query("SELECT categoryId, SUM(amountMinor) AS total FROM transactions WHERE profileId = :profileId AND direction = 'OUT' AND isConfirmed = 1 AND occurredAt >= :startTime AND occurredAt <= :endTime AND categoryId IS NOT NULL GROUP BY categoryId")
     fun getCategoryExpenses(profileId: String, startTime: Long, endTime: Long): Flow<List<CategoryExpense>>
+
+    @Query("SELECT SUM(amountMinor) FROM transactions WHERE direction = 'OUT' AND isConfirmed = 1 AND occurredAt >= :startTime AND occurredAt <= :endTime")
+    fun getAllMonthlyExpense(startTime: Long, endTime: Long): Flow<Long?>
+
+    @Query("SELECT SUM(amountMinor) FROM transactions WHERE direction = 'IN' AND isConfirmed = 1 AND occurredAt >= :startTime AND occurredAt <= :endTime")
+    fun getAllMonthlyIncome(startTime: Long, endTime: Long): Flow<Long?>
+
+    @Query("SELECT categoryId, SUM(amountMinor) AS total FROM transactions WHERE direction = 'OUT' AND isConfirmed = 1 AND occurredAt >= :startTime AND occurredAt <= :endTime AND categoryId IS NOT NULL GROUP BY categoryId")
+    fun getAllCategoryExpenses(startTime: Long, endTime: Long): Flow<List<CategoryExpense>>
+
+    @Query("SELECT * FROM transactions ORDER BY occurredAt DESC LIMIT :limit")
+    fun getAllRecentTransactions(limit: Int): Flow<List<Transaction>>
 }

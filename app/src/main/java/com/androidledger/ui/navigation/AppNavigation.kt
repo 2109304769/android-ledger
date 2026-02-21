@@ -23,11 +23,14 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.NavType
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.androidledger.ui.addtransaction.AddTransactionScreen
 import com.androidledger.ui.dashboard.DashboardScreen
 import com.androidledger.ui.settings.SettingsScreen
+import com.androidledger.ui.transactiondetail.TransactionDetailScreen
 import com.androidledger.ui.transactions.TransactionsScreen
 
 sealed class Screen(
@@ -116,16 +119,41 @@ fun AppNavigation() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Dashboard.route) {
-                DashboardScreen()
+                DashboardScreen(
+                    onNavigateToTransaction = { transactionId ->
+                        navController.navigate("transaction_detail/$transactionId")
+                    },
+                    onNavigateToAddTransaction = {
+                        navController.navigate(Screen.AddTransaction.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
             }
             composable(Screen.AddTransaction.route) {
                 AddTransactionScreen()
             }
             composable(Screen.Transactions.route) {
-                TransactionsScreen()
+                TransactionsScreen(
+                    onNavigateToTransaction = { transactionId ->
+                        navController.navigate("transaction_detail/$transactionId")
+                    }
+                )
             }
             composable(Screen.Settings.route) {
                 SettingsScreen()
+            }
+            composable(
+                route = "transaction_detail/{transactionId}",
+                arguments = listOf(navArgument("transactionId") { type = NavType.StringType })
+            ) {
+                TransactionDetailScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
         }
     }

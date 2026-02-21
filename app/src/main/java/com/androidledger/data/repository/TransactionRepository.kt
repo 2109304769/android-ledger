@@ -71,4 +71,16 @@ class TransactionRepository @Inject constructor(
         endTime: Long
     ): Flow<List<CategoryExpense>> =
         transactionDao.getCategoryExpenses(profileId, startTime, endTime)
+
+    fun getAllRecentTransactions(limit: Int = 50): Flow<List<Transaction>> =
+        transactionDao.getAllRecentTransactions(limit)
+
+    fun getAllMonthlyExpense(startTime: Long, endTime: Long): Flow<Long?> =
+        transactionDao.getAllMonthlyExpense(startTime, endTime)
+
+    fun getAllMonthlyIncome(startTime: Long, endTime: Long): Flow<Long?> =
+        transactionDao.getAllMonthlyIncome(startTime, endTime)
+
+    fun getAllCategoryExpenses(startTime: Long, endTime: Long): Flow<List<CategoryExpense>> =
+        transactionDao.getAllCategoryExpenses(startTime, endTime)
 }
