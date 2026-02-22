@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">记账本</string>
+    <string name="quick_entry_short">极速记账</string>
+    <string name="quick_entry_long">极速记账模式</string>
+    <string name="widget_description">桌面极速记账小组件，无需打开App即可快速记一笔</string>
 </resources>

@@ -5,14 +5,17 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -34,11 +37,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -59,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -67,15 +67,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.androidledger.ui.theme.ContentSecondary
+import com.androidledger.ui.theme.ContentTertiary
 import com.androidledger.ui.theme.ExpenseRed
 import com.androidledger.ui.theme.IncomeGreen
 import com.androidledger.ui.theme.TransferBlue
+import com.androidledger.ui.theme.WiseForestGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     onNavigateToTransaction: (String) -> Unit = {},
     onNavigateToAddTransaction: () -> Unit = {},
+    onNavigateToQuickEntry: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -84,20 +88,27 @@ fun DashboardScreen(
     var sourcesExpanded by remember { mutableStateOf(true) }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("\u9996\u9875") },
+                title = {
+                    Text(
+                        text = "\u6211\u7684\u8D26\u672C",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Normal,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
                 actions = {
-                    // Notification icon with unconfirmed badge
                     if (uiState.unconfirmedCount > 0) {
                         BadgedBox(
                             badge = {
                                 Badge(
-                                    containerColor = Color.Red,
+                                    containerColor = ExpenseRed,
                                     contentColor = Color.White
                                 ) {
                                     Text(
@@ -107,11 +118,12 @@ fun DashboardScreen(
                                     )
                                 }
                             },
-                            modifier = Modifier.padding(end = 12.dp)
+                            modifier = Modifier.padding(end = 16.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Notifications,
                                 contentDescription = "\u672A\u786E\u8BA4\u4EA4\u6613",
+                                modifier = Modifier.size(22.dp),
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -120,7 +132,8 @@ fun DashboardScreen(
                             Icon(
                                 imageVector = Icons.Filled.Notifications,
                                 contentDescription = "\u901A\u77E5",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                modifier = Modifier.size(22.dp),
+                                tint = ContentTertiary
                             )
                         }
                     }
@@ -130,8 +143,9 @@ fun DashboardScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNavigateToAddTransaction,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                containerColor = WiseForestGreen,
+                contentColor = Color.White,
+                shape = CircleShape
             ) {
                 Icon(Icons.Filled.Add, contentDescription = "\u5FEB\u901F\u8BB0\u8D26")
             }
@@ -167,7 +181,7 @@ fun DashboardScreen(
             // -- Wallet Balance Cards --
             if (uiState.walletItems.isNotEmpty()) {
                 item {
-                    SectionHeader(title = "\u94B1\u5305\u603B\u89C8")
+                    SectionLabel(title = "\u94B1\u5305\u603B\u89C8")
                     WalletCardsRow(
                         wallets = uiState.walletItems,
                         balanceHidden = balanceHidden,
@@ -193,13 +207,20 @@ fun DashboardScreen(
                         enter = expandVertically(),
                         exit = shrinkVertically()
                     ) {
-                        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                            uiState.sourceItems.forEach { source ->
+                        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                            uiState.sourceItems.forEachIndexed { index, source ->
                                 SourceRow(
                                     source = source,
                                     balanceHidden = balanceHidden,
                                     showProfileName = uiState.selectedProfileId == null
                                 )
+                                if (index < uiState.sourceItems.lastIndex) {
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(start = 52.dp),
+                                        thickness = 0.5.dp,
+                                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                                    )
+                                }
                             }
                         }
                     }
@@ -208,9 +229,9 @@ fun DashboardScreen(
 
             // -- Category Pie Chart --
             item {
-                SectionHeader(title = "\u672C\u6708\u652F\u51FA\u5206\u7C7B")
+                SectionLabel(title = "\u672C\u6708\u652F\u51FA\u5206\u7C7B")
                 if (uiState.categoryExpenses.isEmpty()) {
-                    EmptyStateCard(message = "\u672C\u6708\u6682\u65E0\u652F\u51FA\u8BB0\u5F55")
+                    EmptyState(message = "\u672C\u6708\u6682\u65E0\u652F\u51FA\u8BB0\u5F55")
                 } else {
                     CategoryPieChartSection(
                         categories = uiState.categoryExpenses,
@@ -222,12 +243,12 @@ fun DashboardScreen(
 
             // -- Recent Transactions --
             item {
-                SectionHeader(title = "\u6700\u8FD1\u4EA4\u6613")
+                SectionLabel(title = "\u6700\u8FD1\u4EA4\u6613")
             }
 
             if (uiState.transactionGroups.isEmpty()) {
                 item {
-                    EmptyStateCard(message = "\u6682\u65E0\u4EA4\u6613\u8BB0\u5F55")
+                    EmptyState(message = "\u6682\u65E0\u4EA4\u6613\u8BB0\u5F55")
                 }
             } else {
                 uiState.transactionGroups.forEach { group ->
@@ -257,7 +278,7 @@ fun DashboardScreen(
 }
 
 // ============================================================
-// Account Switcher
+// Account Switcher - Wise pill-style chips
 // ============================================================
 
 @Composable
@@ -270,36 +291,61 @@ private fun AccountSwitcherRow(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         // "All" chip
-        FilterChip(
+        WisePillChip(
+            text = "\u5168\u90E8",
             selected = selectedProfileId == null,
-            onClick = { onSelect(null) },
-            label = { Text("\u5168\u90E8") },
-            colors = FilterChipDefaults.filterChipColors(
-                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-            )
+            onClick = { onSelect(null) }
         )
         // Per-profile chips
         profiles.forEach { profile ->
-            FilterChip(
+            WisePillChip(
+                text = "${profile.emoji} ${profile.name}",
                 selected = selectedProfileId == profile.id,
-                onClick = { onSelect(profile.id) },
-                label = { Text("${profile.emoji} ${profile.name}") },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                )
+                onClick = { onSelect(profile.id) }
             )
         }
     }
 }
 
+@Composable
+private fun WisePillChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundColor = if (selected) WiseForestGreen else Color.Transparent
+    val contentColor = if (selected) Color.White else MaterialTheme.colorScheme.onSurface
+    val borderColor = if (selected) Color.Transparent else MaterialTheme.colorScheme.outline
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .then(
+                if (!selected) Modifier.border(
+                    width = 1.dp,
+                    color = borderColor,
+                    shape = RoundedCornerShape(50)
+                ) else Modifier
+            )
+            .background(backgroundColor)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+            color = contentColor
+        )
+    }
+}
+
 // ============================================================
-// Monthly Overview Card
+// Monthly Overview Card - White with subtle border
 // ============================================================
 
 @Composable
@@ -311,96 +357,135 @@ private fun MonthlyOverviewCard(
     currency: String,
     balanceHidden: Boolean
 ) {
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = monthLabel,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+            .padding(horizontal = 20.dp, vertical = 8.dp)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline,
+                shape = RoundedCornerShape(16.dp)
             )
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(20.dp)
+    ) {
+        Text(
+            text = monthLabel,
+            style = MaterialTheme.typography.bodySmall,
+            color = ContentTertiary,
+            letterSpacing = 0.5.sp
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Income column
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Income
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "\u672C\u6708\u6536\u5165",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = if (balanceHidden) "****"
-                        else DashboardViewModel.formatAmountAbs(monthlyIncome, currency),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = IncomeGreen
-                    )
-                }
-                // Expense
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "\u672C\u6708\u652F\u51FA",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = if (balanceHidden) "****"
-                        else DashboardViewModel.formatAmountAbs(monthlyExpense, currency),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = ExpenseRed
-                    )
-                }
-                // Net
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "\u51C0\u6D41\u6C34",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = if (balanceHidden) "****"
-                        else DashboardViewModel.formatAmount(monthlyNet, currency),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (monthlyNet >= 0) IncomeGreen else ExpenseRed
-                    )
-                }
+                Text(
+                    text = "\u6536\u5165",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ContentTertiary
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = if (balanceHidden) "****"
+                    else DashboardViewModel.formatAmountAbs(monthlyIncome, currency),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = IncomeGreen,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // Thin vertical divider
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(0.5.dp)
+                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+            )
+
+            // Expense column
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "\u652F\u51FA",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ContentTertiary
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = if (balanceHidden) "****"
+                    else DashboardViewModel.formatAmountAbs(monthlyExpense, currency),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = ExpenseRed,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // Thin vertical divider
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(0.5.dp)
+                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+            )
+
+            // Net column
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "\u7ED3\u4F59",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ContentTertiary
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = if (balanceHidden) "****"
+                    else DashboardViewModel.formatAmount(monthlyNet, currency),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = if (monthlyNet >= 0) IncomeGreen else ExpenseRed,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }
 }
 
 // ============================================================
-// Section Header
+// Section Label - Calm, minimal
 // ============================================================
 
 @Composable
-private fun SectionHeader(title: String) {
+private fun SectionLabel(title: String) {
     Text(
         text = title,
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-        color = MaterialTheme.colorScheme.onSurface
+        style = MaterialTheme.typography.bodySmall,
+        fontWeight = FontWeight.Medium,
+        letterSpacing = 0.8.sp,
+        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 10.dp),
+        color = ContentTertiary
     )
 }
 
 // ============================================================
-// Wallet Cards (horizontal scroll)
+// Wallet Cards - White with thin border
 // ============================================================
 
 @Composable
@@ -410,7 +495,7 @@ private fun WalletCardsRow(
     showProfileName: Boolean
 ) {
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(wallets, key = { it.walletId }) { wallet ->
@@ -429,53 +514,57 @@ private fun WalletCard(
     balanceHidden: Boolean,
     showProfileName: Boolean
 ) {
-    Card(
+    Column(
         modifier = Modifier
-            .width(180.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+            .width(180.dp)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(16.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            if (showProfileName && wallet.profileName.isNotEmpty()) {
-                Text(
-                    text = wallet.profileName,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-            }
+        if (showProfileName && wallet.profileName.isNotEmpty()) {
             Text(
-                text = wallet.walletName,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium,
+                text = wallet.profileName,
+                style = MaterialTheme.typography.labelSmall,
+                color = ContentTertiary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = if (balanceHidden) "****"
-                else DashboardViewModel.formatAmountAbs(wallet.totalBalance, wallet.currency),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "${wallet.sources.size}\u4E2A\u8D26\u6237",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Spacer(modifier = Modifier.height(2.dp))
         }
+        Text(
+            text = wallet.walletName,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(
+            text = if (balanceHidden) "****"
+            else DashboardViewModel.formatAmountAbs(wallet.totalBalance, wallet.currency),
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Normal,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = "${wallet.sources.size}\u4E2A\u8D26\u6237",
+            style = MaterialTheme.typography.bodySmall,
+            color = ContentTertiary
+        )
     }
 }
 
 // ============================================================
-// Source Balances (collapsible)
+// Source Balances - Clean list, no card wrapper
 // ============================================================
 
 @Composable
@@ -489,29 +578,30 @@ private fun SourceSectionHeader(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onToggle() }
-            .padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 8.dp),
+            .padding(start = 20.dp, end = 12.dp, top = 24.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = "\u8D26\u6237\u4F59\u989D",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium,
+            letterSpacing = 0.8.sp,
             modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.onSurface
+            color = ContentTertiary
         )
         IconButton(onClick = onToggleHidden, modifier = Modifier.size(32.dp)) {
             Icon(
                 imageVector = if (balanceHidden) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
                 contentDescription = if (balanceHidden) "\u663E\u793A\u4F59\u989D" else "\u9690\u85CF\u4F59\u989D",
-                modifier = Modifier.size(18.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                modifier = Modifier.size(16.dp),
+                tint = ContentTertiary
             )
         }
         Icon(
             imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
             contentDescription = if (expanded) "\u6536\u8D77" else "\u5C55\u5F00",
-            modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            modifier = Modifier.size(20.dp),
+            tint = ContentTertiary
         )
     }
 }
@@ -525,13 +615,13 @@ private fun SourceRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
+            .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Source icon
+        // Source icon - 40dp circle
         Box(
             modifier = Modifier
-                .size(36.dp)
+                .size(40.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -547,10 +637,11 @@ private fun SourceRow(
                 Text(
                     text = source.name,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
+                    modifier = Modifier.weight(1f, fill = false),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 if (showProfileName && source.profileName.isNotEmpty()) {
                     Spacer(modifier = Modifier.width(6.dp))
@@ -560,21 +651,22 @@ private fun SourceRow(
             Text(
                 text = source.walletName,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = ContentTertiary
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = if (balanceHidden) "****"
             else DashboardViewModel.formatAmountAbs(source.balance, source.currency),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Normal,
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
 
 // ============================================================
-// Category Pie Chart
+// Category Pie Chart - Clean donut
 // ============================================================
 
 @Composable
@@ -583,51 +675,39 @@ private fun CategoryPieChartSection(
     currency: String,
     balanceHidden: Boolean
 ) {
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            .padding(horizontal = 20.dp, vertical = 4.dp)
     ) {
-        Row(
+        // Donut chart centered
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(vertical = 8.dp),
+            contentAlignment = Alignment.Center
         ) {
-            // Pie chart
-            Box(
-                modifier = Modifier.size(120.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                PieChart(
-                    categories = categories,
-                    modifier = Modifier.size(120.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            // Legend - top 5
-            Column(modifier = Modifier.weight(1f)) {
-                categories.take(5).forEach { cat ->
-                    CategoryLegendRow(
-                        category = cat,
-                        currency = currency,
-                        balanceHidden = balanceHidden
-                    )
-                }
-                if (categories.size > 5) {
-                    Text(
-                        text = "\u2026\u53CA\u5176\u4ED6${categories.size - 5}\u4E2A\u5206\u7C7B",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
+            PieChart(
+                categories = categories,
+                modifier = Modifier.size(140.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        // Legend items
+        categories.take(6).forEach { cat ->
+            CategoryLegendRow(
+                category = cat,
+                currency = currency,
+                balanceHidden = balanceHidden
+            )
+        }
+        if (categories.size > 6) {
+            Text(
+                text = "\u2026\u53CA\u5176\u4ED6${categories.size - 6}\u4E2A\u5206\u7C7B",
+                style = MaterialTheme.typography.bodySmall,
+                color = ContentTertiary,
+                modifier = Modifier.padding(top = 4.dp, start = 16.dp)
+            )
         }
     }
 }
@@ -639,32 +719,34 @@ private fun PieChart(
 ) {
     Canvas(modifier = modifier) {
         val canvasSize = size.minDimension
-        val strokeWidth = canvasSize * 0.22f
+        val strokeWidth = canvasSize * 0.28f
         var startAngle = -90f
 
         if (categories.isEmpty()) {
-            // Empty state circle
             drawCircle(
-                color = Color.LightGray.copy(alpha = 0.3f),
+                color = Color.LightGray.copy(alpha = 0.2f),
                 radius = (canvasSize - strokeWidth) / 2f,
-                style = Stroke(width = strokeWidth)
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
             )
             return@Canvas
         }
 
+        val gapAngle = 2f
+
         categories.forEach { cat ->
-            val sweepAngle = cat.percentage / 100f * 360f
+            val rawSweep = cat.percentage / 100f * 360f
+            val sweepAngle = (rawSweep - gapAngle).coerceAtLeast(0.5f)
             val color = parseColor(cat.color)
             drawArc(
                 color = color,
-                startAngle = startAngle,
+                startAngle = startAngle + gapAngle / 2f,
                 sweepAngle = sweepAngle,
                 useCenter = false,
                 topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
                 size = Size(canvasSize - strokeWidth, canvasSize - strokeWidth),
-                style = Stroke(width = strokeWidth)
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
             )
-            startAngle += sweepAngle
+            startAngle += rawSweep
         }
     }
 }
@@ -678,44 +760,47 @@ private fun CategoryLegendRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
+            .padding(vertical = 5.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Color dot
+        // Small color dot - 8dp
         Box(
             modifier = Modifier
-                .size(10.dp)
+                .size(8.dp)
                 .clip(CircleShape)
                 .background(parseColor(category.color))
         )
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = "${category.emoji} ${category.name}",
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Normal,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.onSurface
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = if (balanceHidden) "****"
             else DashboardViewModel.formatAmountAbs(category.amount, currency),
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Normal,
+            maxLines = 1,
+            color = MaterialTheme.colorScheme.onSurface
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = "${String.format("%.1f", category.percentage)}%",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall,
+            color = ContentTertiary,
             maxLines = 1
         )
     }
 }
 
 // ============================================================
-// Recent Transactions
+// Recent Transactions - Clean list, no card wrappers
 // ============================================================
 
 @Composable
@@ -728,23 +813,22 @@ private fun TransactionDateHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 20.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = dateLabel,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium,
+            color = ContentTertiary,
             modifier = Modifier.weight(1f)
         )
         if (dailyTotal > 0) {
             Text(
                 text = if (balanceHidden) "\u652F\u51FA: ****"
                 else "\u652F\u51FA: ${DashboardViewModel.formatAmountAbs(dailyTotal, currency)}",
-                style = MaterialTheme.typography.labelSmall,
-                color = ExpenseRed
+                style = MaterialTheme.typography.bodySmall,
+                color = ContentTertiary
             )
         }
     }
@@ -761,14 +845,14 @@ private fun TransactionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Category emoji
+        // Category emoji in soft grey circle - 44dp
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .size(44.dp)
+                .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
@@ -778,7 +862,7 @@ private fun TransactionRow(
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
-        // Merchant and metadata
+        // Merchant and source info
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -787,38 +871,28 @@ private fun TransactionRow(
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
+                    modifier = Modifier.weight(1f, fill = false),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 if (showProfileName && transaction.profileName.isNotEmpty()) {
                     Spacer(modifier = Modifier.width(6.dp))
                     ProfileTag(name = transaction.profileName)
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = transaction.categoryName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = " \u00B7 ",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = transaction.sourceName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = transaction.sourceName,
+                style = MaterialTheme.typography.bodySmall,
+                color = ContentTertiary
+            )
         }
         Spacer(modifier = Modifier.width(8.dp))
-        // Amount and time
+        // Amount and time, right-aligned
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = if (balanceHidden) "****" else transaction.amount,
+                text = if (balanceHidden) "****" else formatTransactionAmount(transaction),
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Normal,
                 color = when (transaction.direction) {
                     "IN" -> IncomeGreen
                     "OUT" -> ExpenseRed
@@ -826,18 +900,34 @@ private fun TransactionRow(
                     else -> MaterialTheme.colorScheme.onSurface
                 }
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = transaction.time,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.bodySmall,
+                color = ContentTertiary
             )
         }
     }
     HorizontalDivider(
-        modifier = Modifier.padding(start = 68.dp),
+        modifier = Modifier.padding(start = 76.dp, end = 20.dp),
         thickness = 0.5.dp,
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
     )
+}
+
+private fun formatTransactionAmount(transaction: TransactionDisplayItem): String {
+    val prefix = when (transaction.direction) {
+        "IN" -> "+"
+        "OUT" -> "-"
+        else -> ""
+    }
+    // The amount string from ViewModel already has sign handling,
+    // so we use the raw amount but add a subtle prefix
+    return if (transaction.amount.startsWith("-") || transaction.amount.startsWith("+")) {
+        transaction.amount
+    } else {
+        "$prefix${transaction.amount}"
+    }
 }
 
 // ============================================================
@@ -849,40 +939,30 @@ private fun ProfileTag(name: String) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(4.dp))
-            .background(MaterialTheme.colorScheme.tertiaryContainer)
-            .padding(horizontal = 4.dp, vertical = 1.dp)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 5.dp, vertical = 1.dp)
     ) {
         Text(
             text = name,
             style = MaterialTheme.typography.labelSmall,
             fontSize = 9.sp,
-            color = MaterialTheme.colorScheme.onTertiaryContainer,
+            color = ContentSecondary,
             maxLines = 1
         )
     }
 }
 
 @Composable
-private fun EmptyStateCard(message: String) {
-    Card(
+private fun EmptyState(message: String) {
+    Text(
+        text = message,
+        style = MaterialTheme.typography.bodyMedium,
+        color = ContentTertiary,
+        textAlign = TextAlign.Center,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 32.dp, horizontal = 16.dp)
-        )
-    }
+            .padding(vertical = 40.dp, horizontal = 20.dp)
+    )
 }
 
 // ============================================================

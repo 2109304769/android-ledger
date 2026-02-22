@@ -20,6 +20,9 @@ interface WalletDao {
     @Query("SELECT * FROM wallet WHERE id = :id")
     fun getById(id: String): Flow<Wallet?>
 
+    @Query("SELECT * FROM wallet WHERE id = :id")
+    suspend fun getByIdSync(id: String): Wallet?
+
     @Insert
     suspend fun insert(wallet: Wallet)
 

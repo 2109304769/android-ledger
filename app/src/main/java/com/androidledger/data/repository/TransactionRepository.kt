@@ -53,6 +53,9 @@ class TransactionRepository @Inject constructor(
     suspend fun addTransactionOrIgnore(transaction: Transaction) =
         transactionDao.insertOrIgnore(transaction)
 
+    suspend fun addTransactionsOrIgnore(transactions: List<Transaction>) =
+        transactionDao.insertAllOrIgnore(transactions)
+
     suspend fun updateTransaction(transaction: Transaction) =
         transactionDao.update(transaction)
 

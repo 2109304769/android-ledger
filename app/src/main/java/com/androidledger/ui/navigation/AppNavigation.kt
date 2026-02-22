@@ -28,7 +28,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.androidledger.ui.addtransaction.AddTransactionScreen
+import com.androidledger.ui.csvimport.CsvImportScreen
 import com.androidledger.ui.dashboard.DashboardScreen
+import com.androidledger.ui.quickentry.QuickEntryScreen
 import com.androidledger.ui.settings.SettingsScreen
 import com.androidledger.ui.transactiondetail.TransactionDetailScreen
 import com.androidledger.ui.transactions.TransactionsScreen
@@ -41,28 +43,28 @@ sealed class Screen(
 ) {
     data object Dashboard : Screen(
         route = "dashboard",
-        title = "首页",
+        title = "\u9996\u9875",
         selectedIcon = Icons.Filled.Home,
         unselectedIcon = Icons.Outlined.Home
     )
 
     data object AddTransaction : Screen(
         route = "add_transaction",
-        title = "记账",
+        title = "\u8BB0\u8D26",
         selectedIcon = Icons.Filled.AddCircle,
         unselectedIcon = Icons.Outlined.AddCircle
     )
 
     data object Transactions : Screen(
         route = "transactions",
-        title = "账单",
+        title = "\u8D26\u5355",
         selectedIcon = Icons.Filled.Receipt,
         unselectedIcon = Icons.Outlined.Receipt
     )
 
     data object Settings : Screen(
         route = "settings",
-        title = "设置",
+        title = "\u8BBE\u7F6E",
         selectedIcon = Icons.Filled.Settings,
         unselectedIcon = Icons.Outlined.Settings
     )
@@ -76,46 +78,49 @@ val bottomNavItems = listOf(
 )
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(startRoute: String = Screen.Dashboard.route) {
     val navController = rememberNavController()
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentDestination = navBackStackEntry?.destination
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = navBackStackEntry?.destination?.route
+            if (currentRoute != "quick_entry") {
+                NavigationBar {
+                    val currentDestination = navBackStackEntry?.destination
 
-                bottomNavItems.forEach { screen ->
-                    val selected = currentDestination?.hierarchy?.any {
-                        it.route == screen.route
-                    } == true
+                    bottomNavItems.forEach { screen ->
+                        val selected = currentDestination?.hierarchy?.any {
+                            it.route == screen.route
+                        } == true
 
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                imageVector = if (selected) screen.selectedIcon else screen.unselectedIcon,
-                                contentDescription = screen.title
-                            )
-                        },
-                        label = { Text(text = screen.title) },
-                        selected = selected,
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                        NavigationBarItem(
+                            icon = {
+                                Icon(
+                                    imageVector = if (selected) screen.selectedIcon else screen.unselectedIcon,
+                                    contentDescription = screen.title
+                                )
+                            },
+                            label = { Text(text = screen.title) },
+                            selected = selected,
+                            onClick = {
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Dashboard.route,
+            startDestination = startRoute,
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Dashboard.route) {
@@ -131,6 +136,9 @@ fun AppNavigation() {
                             launchSingleTop = true
                             restoreState = true
                         }
+                    },
+                    onNavigateToQuickEntry = {
+                        navController.navigate("quick_entry")
                     }
                 )
             }
@@ -141,6 +149,9 @@ fun AppNavigation() {
                 TransactionsScreen(
                     onNavigateToTransaction = { transactionId ->
                         navController.navigate("transaction_detail/$transactionId")
+                    },
+                    onNavigateToCsvImport = {
+                        navController.navigate("csv_import")
                     }
                 )
             }
@@ -153,6 +164,20 @@ fun AppNavigation() {
             ) {
                 TransactionDetailScreen(
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable("csv_import") {
+                CsvImportScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable("quick_entry") {
+                QuickEntryScreen(
+                    onNavigateToStandard = {
+                        navController.navigate(Screen.AddTransaction.route) {
+                            popUpTo("quick_entry") { inclusive = true }
+                        }
+                    }
                 )
             }
         }

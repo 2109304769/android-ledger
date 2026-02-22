@@ -34,4 +34,12 @@ interface SourceDao {
 
     @Query("UPDATE source SET balanceSnapshot = :balanceSnapshot, balanceUpdatedAt = :balanceUpdatedAt WHERE id = :id")
     suspend fun updateBalance(id: String, balanceSnapshot: Long, balanceUpdatedAt: Long)
+
+    @Query("""
+        SELECT source.* FROM source
+        INNER JOIN wallet ON source.walletId = wallet.id
+        WHERE wallet.currency = :currency AND source.isArchived = 0
+        LIMIT 1
+    """)
+    suspend fun getFirstSourceByCurrency(currency: String): Source?
 }

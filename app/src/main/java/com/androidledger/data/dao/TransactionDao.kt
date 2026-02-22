@@ -53,6 +53,9 @@ interface TransactionDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertOrIgnore(transaction: Transaction)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAllOrIgnore(transactions: List<Transaction>)
+
     @Update
     suspend fun update(transaction: Transaction)
 

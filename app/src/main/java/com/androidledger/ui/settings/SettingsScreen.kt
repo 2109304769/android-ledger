@@ -1,5 +1,7 @@
 package com.androidledger.ui.settings
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -27,6 +29,8 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Money
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -41,11 +45,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,11 +59,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import com.androidledger.data.entity.Category
 import com.androidledger.data.entity.Profile
 import com.androidledger.data.entity.Source
 import com.androidledger.data.entity.Wallet
@@ -67,17 +78,39 @@ import com.androidledger.data.entity.Wallet
 fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
     val allWallets by viewModel.allWallets.collectAsStateWithLifecycle()
     val allSources by viewModel.allSources.collectAsStateWithLifecycle()
     val exchangeRate by viewModel.exchangeRate.collectAsStateWithLifecycle()
+    val notificationListeningEnabled by viewModel.notificationListeningEnabled.collectAsStateWithLifecycle()
+    val notificationAccessGranted by viewModel.notificationAccessGranted.collectAsStateWithLifecycle()
+    val privacyAccepted by viewModel.privacyAccepted.collectAsStateWithLifecycle()
+    val allCategories by viewModel.allCategories.collectAsStateWithLifecycle()
+    val quickEntryEnabled by viewModel.quickEntryEnabled.collectAsStateWithLifecycle()
+    val qeDefaultExpenseSourceId by viewModel.quickEntryDefaultExpenseSourceId.collectAsStateWithLifecycle()
+    val qeDefaultIncomeSourceId by viewModel.quickEntryDefaultIncomeSourceId.collectAsStateWithLifecycle()
+    val qeDefaultExpenseCategoryId by viewModel.quickEntryDefaultExpenseCategoryId.collectAsStateWithLifecycle()
+    val qeDefaultIncomeCategoryId by viewModel.quickEntryDefaultIncomeCategoryId.collectAsStateWithLifecycle()
+    val qeDefaultCurrency by viewModel.quickEntryDefaultCurrency.collectAsStateWithLifecycle()
+    val qeDefaultProfileId by viewModel.quickEntryDefaultProfileId.collectAsStateWithLifecycle()
 
     var showCreateProfileDialog by remember { mutableStateOf(false) }
     var showCreateWalletDialog by remember { mutableStateOf<String?>(null) }
     var showCreateSourceDialog by remember { mutableStateOf<String?>(null) }
     var showEditRateDialog by remember { mutableStateOf(false) }
+    var showPrivacyDialog by remember { mutableStateOf(false) }
     var expandedProfileId by remember { mutableStateOf<String?>(null) }
     var expandedWalletId by remember { mutableStateOf<String?>(null) }
+
+    // Refresh notification access status when returning from system settings
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.refreshNotificationAccessStatus()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -201,6 +234,101 @@ fun SettingsScreen(
                 }
             }
 
+            // ========== Section: Notification Listening ==========
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                SectionHeader(title = "通知监听")
+            }
+
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Notifications,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = "自动记账",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Text(
+                                        text = "监听微信和支付宝通知",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Switch(
+                                checked = notificationListeningEnabled,
+                                onCheckedChange = { enabled ->
+                                    if (enabled) {
+                                        if (!privacyAccepted) {
+                                            showPrivacyDialog = true
+                                        } else {
+                                            viewModel.setNotificationListeningEnabled(true)
+                                            if (!notificationAccessGranted) {
+                                                val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                                                context.startActivity(intent)
+                                            }
+                                        }
+                                    } else {
+                                        viewModel.setNotificationListeningEnabled(false)
+                                    }
+                                }
+                            )
+                        }
+
+                        // Status indicators
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        if (notificationListeningEnabled) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(start = 36.dp)
+                            ) {
+                                Text(
+                                    text = if (notificationAccessGranted) "系统权限：已授权" else "系统权限：未授权",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (notificationAccessGranted)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.error
+                                )
+                            }
+                            if (!notificationAccessGranted) {
+                                TextButton(
+                                    onClick = {
+                                        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                                        context.startActivity(intent)
+                                    },
+                                    modifier = Modifier.padding(start = 24.dp)
+                                ) {
+                                    Text("前往系统设置授权")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // ========== Section: About ==========
             item {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -289,6 +417,21 @@ fun SettingsScreen(
                 viewModel.updateExchangeRate(newRate)
                 showEditRateDialog = false
             }
+        )
+    }
+
+    if (showPrivacyDialog) {
+        NotificationPrivacyDialog(
+            onAccept = {
+                viewModel.setPrivacyAccepted()
+                viewModel.setNotificationListeningEnabled(true)
+                showPrivacyDialog = false
+                if (!notificationAccessGranted) {
+                    val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                    context.startActivity(intent)
+                }
+            },
+            onDismiss = { showPrivacyDialog = false }
         )
     }
 }
@@ -894,6 +1037,35 @@ private fun CreateSourceDialog(
                 enabled = name.isNotBlank()
             ) {
                 Text("添加")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+@Composable
+private fun NotificationPrivacyDialog(
+    onAccept: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("隐私说明") },
+        text = {
+            Text(
+                text = "开启通知监听后，App 将读取微信和支付宝的推送通知来自动记账。" +
+                        "所有数据仅保存在您的手机本地，不会上传到任何服务器。" +
+                        "您可以随时在设置中关闭此功能。关闭后将立即停止读取任何通知。",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onAccept) {
+                Text("同意并开启")
             }
         },
         dismissButton = {
